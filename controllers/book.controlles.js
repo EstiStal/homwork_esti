@@ -1,14 +1,16 @@
-const { books, lends } = require('../db')
+const { lends } = require('../db')
 const { users } = require('../user')
+const Book=require('../modules/book.model')
 
 // GET /books - קבלת ספרים (עם אפשרות לסינון לפי קטגוריה)
-exports.getAllBooks = (req, res, next) => {
+exports.getAllBooks =async (req, res, next) => {
     try {
         const category = req.query.category || null
         if (category !== null) {
-            const filteredBooks = books.filter(b => b.category.toLowerCase() === category.toLowerCase())
+            const filteredBooks = await Book.find({ category: category })
             return res.json(filteredBooks)
         }
+        const books = await Book.find()
         res.json(books)
     } catch (error) {
         next(error)
@@ -16,10 +18,10 @@ exports.getAllBooks = (req, res, next) => {
 }
 
 // GET /books/:id - קבלת ספר לפי מזהה
-exports.getBookById = (req, res, next) => {
+exports.getBookById = async (req, res, next) => {
     try {
         const bookid = +req.params.id
-        const book = books.find(b => b.id === bookid)
+        const book = await Book.findById(bookid)
         if (book) {
             res.json(book)
         } else {
@@ -32,10 +34,10 @@ exports.getBookById = (req, res, next) => {
 }
 
 // POST /books - הוספת ספר
-exports.addBook = (req, res, next) => {
+exports.addBook = async (req, res, next) => {
     try {
-        const book = { id: 6, bookId: 4, userId: 104, lendDate: "2023-04-05" }
-        books.push(book)
+        const book = new Book(req.body)
+        await book.save()
         res.status(201).json(book)
     } catch (error) {
         next(error)
@@ -43,16 +45,12 @@ exports.addBook = (req, res, next) => {
 }
 
 // PUT /books/:id - עדכון ספר
-exports.updateBook = (req, res, next) => {
+exports.updateBook = async (req, res, next) => {
     try {
         const bookid = +req.params.id
-        const book = books.find(b => b.id === bookid)
+        const book = await Book.findByIdAndUpdate(bookid, req.body, { new: true })
         if (book) {
-            const { name, category, price } = req.body
-            if (name) book.name = name
-            if (category) book.category = category
-            if (price) book.price = price
-            res.json(books)
+            res.json(book)
         } else {
             res.status(404)
             throw new Error('book not found')
@@ -63,11 +61,11 @@ exports.updateBook = (req, res, next) => {
 }
 
 // POST /lends - השאלת ספר
-exports.lendBook = (req, res, next) => {
+exports.lendBook = async (req, res, next) => {
     try {
         const bookId = +req.body.bookId
         const userId = +req.body.userId
-        const book = books.find(b => b.id === bookId)
+        const book = await Book.findById(bookId)
         if (book) {
             if (book.isFinite) {
                 res.status(400)
@@ -92,13 +90,14 @@ exports.lendBook = (req, res, next) => {
 }
 
 // PUT /books/:id/lend - עדכון סטטוס השאלה
-exports.updateLendStatus = (req, res, next) => {
+exports.updateLendStatus = async (req, res, next) => {
     try {
         const bookid = +req.params.id
-        const book = books.find(b => b.id === bookid)
+        const book = await Book.findById(bookid)
         if (book) {
             book.isFinite = false
-            res.json(books)
+            await book.save()
+            res.json(book)
         } else {
             res.status(404)
             throw new Error('book not found')
@@ -109,13 +108,12 @@ exports.updateLendStatus = (req, res, next) => {
 }
 
 // DELETE /books/:id - מחיקת ספר
-exports.deleteBook = (req, res, next) => {
+exports.deleteBook = async (req, res, next) => {
     try {
         const bookid = +req.params.id
-        const bookIndex = books.findIndex(b => b.id === bookid)
-        if (bookIndex !== -1) {
-            books.splice(bookIndex, 1)
-            res.json(books)
+        const book = await Book.findByIdAndDelete(bookid)
+        if (book) {
+            res.json(book)
         } else {
             res.status(404)
             throw new Error('book not found')

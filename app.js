@@ -1,6 +1,7 @@
-const express=require('express');
-const app=express();
-const morgan=require('morgan')
+const express = require('express');
+const cors = require('cors'); // הוספי שורה זו
+const app = express();
+const morgan = require('morgan');
 
 const{addCurrentDate,logDateGet}=require('./middelwares/date.middelwares')
 
@@ -14,6 +15,8 @@ app.use(morgan('dev'))
 app.use(express.json())
 
 const PORT=5000
+const connectDB=require('./config/db')
+connectDB()
 
 
 //יבוא הנתיבים
@@ -21,7 +24,7 @@ const bookRoutes=require('./routes/book.route')
 const userRoure=require('./routes/user.route')
 
 app.use('/books',bookRoutes)
-app.use('/users',userRoure)
+//app.use('/users',userRoure)
 
 //יבוא המידלוור של טיפול בשגיאות
 const {notFound,errorHandler}=require('./middelwares/error.middelwares')
